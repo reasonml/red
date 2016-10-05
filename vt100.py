@@ -4,6 +4,7 @@ import subprocess, sys
 
 def color(code, text): return '\033[%sm%s\033[0m' % (code, text)
 def bold(text): return color(1, text)
+def dim(text): return color(2, text)
 def reverse(text): return color(7, text)
 def underline(text): return color(4, text)
 def blue_fg(text): return color(34, text)
@@ -19,6 +20,12 @@ def pop_state():
     sys.stdout.flush()
     sys.stdout.write('\033[J')
     sys.stdout.flush()
+
+def safe_input(prompt=None):
+    try:
+        return raw_input(prompt)
+    except:
+        pass
 
 class _Getch:
     """
