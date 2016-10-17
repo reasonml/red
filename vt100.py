@@ -18,6 +18,8 @@ def push_state():
 def pop_state():
     sys.stdout.write('\0338')
     sys.stdout.flush()
+
+def clear_to_eos():
     sys.stdout.write('\033[J')
     sys.stdout.flush()
 

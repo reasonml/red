@@ -32,7 +32,7 @@ def debugger_command(cmd):
             if match:
                 loc = Location(match.group(1), match.group(2), match.group(3))
 
-            return res[:-6]
+            return res[:-6].replace('\033', '^[')
 
 def hl(src):
     for line in src.split('\n'):
@@ -60,9 +60,11 @@ print(debugger_command(''))
 op = ''
 while True:
     vt100.push_state()
+    print('')
     print(vt100.blue_fg(vt100.bold(':{0} @ {1}'.format(loc.time, loc.module))))
     print(''.ljust(86, '-'))
     print(hl(debugger_command('list')))
+    vt100.pop_state()
     op = vt100.getch()
 
     cmd = None
@@ -71,7 +73,7 @@ while True:
     if op == 'p':
         cmd = 'print ' + vt100.safe_input('print ')
 
-    vt100.pop_state()
+    vt100.clear_to_eos()
     if cmd is not None:
         if cmd.isdigit():
             debugger_command('goto ' + cmd)
