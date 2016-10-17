@@ -7,7 +7,7 @@ import subprocess
 import vt100
 
 # Time: 53 - pc: 186180 - module Format
-TIME_RE = re.compile('.*Time: (\d+) - pc: (\d+) - module (.+)')
+TIME_RE = re.compile('.*Time: (\d+)( - pc: (\d+) - module (.+))?')
 # \032\032M/Users/frantic/.opam/4.02.3/lib/ocaml/camlinternalFormat.ml:64903:65347:before
 LOCATION_RE = re.compile('.*\x1a\x1aM(.+):(.+):(.+):(before|after)', re.S)
 
@@ -39,8 +39,8 @@ def debugger_command(cmd):
             match = TIME_RE.match(res)
             if match:
                 loc['time'] = match.group(1)
-                loc['pc'] = match.group(2)
-                loc['module'] = match.group(3)
+                loc['pc'] = match.group(3)
+                loc['module'] = match.group(4)
 
             match = LOCATION_RE.match(res)
             if match:
@@ -56,7 +56,7 @@ def hl(src):
     for line in src.split('\n'):
         match = LINE_RE.match(line)
         if not match:
-            lines.append(line)
+            lines.append(line + '\n')
             continue
         line_number = vt100.dim(match.group(1).rjust(5, ' ') + ' ')
         text = match.group(2)
@@ -104,19 +104,23 @@ while True:
 
     if cmd is not None:
         if cmd.isdigit():
-            debugger_command('goto ' + cmd)
+            print(debugger_command('goto ' + cmd))
         else:
             print(vt100.blue_fg('>> ' + cmd))
             print(debugger_command(cmd))
 
     if op == 'G':
-        debugger_command('run')
-    if op == 'G':
-        debugger_command('reverse')
+        print(debugger_command('run'))
+    if op == 'g':
+        print(debugger_command('reverse'))
+    if op == 's':
+        print(debugger_command('step'))
+    if op == 'S':
+        print(debugger_command('backstep'))
     if op == 'j':
-        debugger_command('step')
+        print(debugger_command('next'))
     if op == 'k':
-        debugger_command('backstep')
+        print(debugger_command('prev'))
 
     if op == 'q':
         sys.exit()
