@@ -25,31 +25,36 @@ def trace(text):
     debugger_log.write(text + '\n')
     debugger_log.flush()
 
+def read_until(stream, terminator):
+    chunk = ''
+    while True:
+        chunk += stream.read(1)
+        if chunk.endswith(terminator):
+            return chunk[:-len(terminator)]
+
 def debugger_command(cmd):
     if cmd != '':
         trace('>> ' + cmd + '\n')
         dbgr.stdin.write(cmd + '\n')
         dbgr.stdin.flush()
 
-    res = ''
-    while True:
-        res += dbgr.stdout.read(1)
-        if '(ocd) ' in res:
-            trace(res)
-            match = TIME_RE.match(res)
-            if match:
-                loc['time'] = match.group(1)
-                loc['pc'] = match.group(3)
-                loc['module'] = match.group(4)
+    output = read_until(dbgr.stdout, '(ocd) ')
+    trace(output)
 
-            match = LOCATION_RE.match(res)
-            if match:
-                loc['file'] = match.group(1)
-                loc['start'] = match.group(2)
-                loc['end'] = match.group(3)
-                loc['before_or_after'] = match.group(4)
+    match = TIME_RE.match(output)
+    if match:
+        loc['time'] = match.group(1)
+        loc['pc'] = match.group(3)
+        loc['module'] = match.group(4)
 
-            return res[:-6]
+    match = LOCATION_RE.match(output)
+    if match:
+        loc['file'] = match.group(1)
+        loc['start'] = match.group(2)
+        loc['end'] = match.group(3)
+        loc['before_or_after'] = match.group(4)
+
+    return output
 
 def hl(src):
     lines = []
