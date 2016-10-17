@@ -18,9 +18,15 @@ dbgr = subprocess.Popen(['ocamldebug', '-emacs', '/Users/frantic/code/flow/bin/f
 Location = namedtuple('Location', ['time', 'pc', 'module'])
 loc = Location(None, None, None)
 
+debugger_log = open('/tmp/arth.log', 'w')
+def trace(text):
+    debugger_log.write(text + '\n')
+    debugger_log.flush()
+
 def debugger_command(cmd):
     global loc
     if cmd != '':
+        trace('>> ' + cmd + '\n')
         dbgr.stdin.write(cmd + '\n')
         dbgr.stdin.flush()
 
@@ -28,17 +34,19 @@ def debugger_command(cmd):
     while True:
         res += dbgr.stdout.read(1)
         if '(ocd) ' in res:
+            trace(res)
             match = LOCATION_RE.match(res)
             if match:
                 loc = Location(match.group(1), match.group(2), match.group(3))
 
-            return res[:-6].replace('\033', '^[')
+            return res[:-6]
 
 def hl(src):
+    lines = []
     for line in src.split('\n'):
         match = LINE_RE.match(line)
         if not match:
-            print(line)
+            lines.append(line)
             continue
         line_number = vt100.dim(match.group(1).rjust(5, ' ') + ' ')
         text = match.group(2)
@@ -48,7 +56,9 @@ def hl(src):
             line_number = vt100.reverse(line_number)
             text = vt100.reverse(text.replace('<|a|>', '').replace('<|b|>', '').ljust(80))
 
-        sys.stdout.write(line_number + text + '\n')
+        lines.append(line_number + text + '\n')
+
+    return ''.join(lines)
 
 
 
@@ -57,23 +67,31 @@ print(debugger_command(''))
 # print(debugger_command('goto 200'))
 # print(debugger_command('bt'))
 
+console = vt100.Console()
+
 op = ''
 while True:
-    vt100.push_state()
-    print('')
-    print(vt100.blue_fg(vt100.bold(':{0} @ {1}'.format(loc.time, loc.module))))
-    print(''.ljust(86, '-'))
-    print(hl(debugger_command('list')))
-    vt100.pop_state()
+    console.disable_line_wrap()
+    listing = hl(debugger_command('list'))
+    if listing:
+        console.print_text((u'\u2500[ %s ]' % loc.module) + u'\u2500' * 300)
+        console.print_text(listing)
+        console.print_text(u'\u2500' * 300)
+    else:
+        console.print_text(vt100.dim('(no source info)'))
+    console.print_text(vt100.blue_fg(vt100.bold(':{0} @ {1}'.format(loc.time, loc.module))))
+    console.enable_line_wrap()
+
     op = vt100.getch()
 
     cmd = None
     if op == ':' or op == ';':
-        cmd = vt100.safe_input(':')
+        cmd = console.safe_input(':')
     if op == 'p':
-        cmd = 'print ' + vt100.safe_input('print ')
+        cmd = 'print ' + console.safe_input('print ')
 
-    vt100.clear_to_eos()
+    console.clear_last_render()
+
     if cmd is not None:
         if cmd.isdigit():
             debugger_command('goto ' + cmd)

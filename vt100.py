@@ -12,6 +12,34 @@ def red_fg(text): return color(31, text)
 def red_bg(text): return color(41, text)
 def green_bg(text): return color(42, text)
 
+class Console:
+    def __init__(self):
+        self.out = sys.stdout
+        self.lines_printed = 0
+
+    def clear_last_render(self):
+        for i in range(self.lines_printed):
+            self.out.write('\033[1A\033[2K')
+        self.lines_printed = 0
+
+    def enable_line_wrap(self):
+        self.out.write('\033[?7h')
+
+    def disable_line_wrap(self):
+        self.out.write('\033[?7l')
+
+    def print_text(self, text):
+        for line in text.splitlines():
+            self.out.write(line + '\n')
+            self.lines_printed += 1
+
+    def safe_input(self, prompt=None):
+        self.lines_printed += 1
+        try:
+            return raw_input(prompt)
+        except:
+            pass
+
 def push_state():
     sys.stdout.write('\0337')
 
@@ -22,12 +50,6 @@ def pop_state():
 def clear_to_eos():
     sys.stdout.write('\033[J')
     sys.stdout.flush()
-
-def safe_input(prompt=None):
-    try:
-        return raw_input(prompt)
-    except:
-        pass
 
 class _Getch:
     """
