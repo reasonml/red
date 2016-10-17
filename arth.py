@@ -7,7 +7,9 @@ import subprocess
 import vt100
 
 # Time: 53 - pc: 186180 - module Format
-LOCATION_RE = re.compile('Time: (\d+) - pc: (\d+) - module (.+)')
+TIME_RE = re.compile('.*Time: (\d+) - pc: (\d+) - module (.+)')
+# \032\032M/Users/frantic/.opam/4.02.3/lib/ocaml/camlinternalFormat.ml:64903:65347:before
+LOCATION_RE = re.compile('.*\x1a\x1aM(.+):(.+):(.+):(before|after)', re.S)
 
 # 950   let ppf = pp_make_formatter output
 LINE_RE = re.compile('(\d+) ?(.*)')
@@ -15,8 +17,8 @@ LINE_RE = re.compile('(\d+) ?(.*)')
 dbgr = subprocess.Popen(['ocamldebug', '-emacs', '/Users/frantic/code/flow/bin/flow', '--help'],
     stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
-Location = namedtuple('Location', ['time', 'pc', 'module'])
-loc = Location(None, None, None)
+# Location = namedtuple('Location', ['time', 'pc', 'module'])
+loc = dict()
 
 debugger_log = open('/tmp/arth.log', 'w')
 def trace(text):
@@ -24,7 +26,6 @@ def trace(text):
     debugger_log.flush()
 
 def debugger_command(cmd):
-    global loc
     if cmd != '':
         trace('>> ' + cmd + '\n')
         dbgr.stdin.write(cmd + '\n')
@@ -35,9 +36,18 @@ def debugger_command(cmd):
         res += dbgr.stdout.read(1)
         if '(ocd) ' in res:
             trace(res)
+            match = TIME_RE.match(res)
+            if match:
+                loc['time'] = match.group(1)
+                loc['pc'] = match.group(2)
+                loc['module'] = match.group(3)
+
             match = LOCATION_RE.match(res)
             if match:
-                loc = Location(match.group(1), match.group(2), match.group(3))
+                loc['file'] = match.group(1)
+                loc['start'] = match.group(2)
+                loc['end'] = match.group(3)
+                loc['before_or_after'] = match.group(4)
 
             return res[:-6]
 
@@ -74,12 +84,12 @@ while True:
     console.disable_line_wrap()
     listing = hl(debugger_command('list'))
     if listing:
-        console.print_text((u'\u2500[ %s ]' % loc.module) + u'\u2500' * 300)
+        console.print_text((u'\u2500[ %s ]' % loc.get('file')) + u'\u2500' * 300)
         console.print_text(listing)
         console.print_text(u'\u2500' * 300)
     else:
         console.print_text(vt100.dim('(no source info)'))
-    console.print_text(vt100.blue_fg(vt100.bold(':{0} @ {1}'.format(loc.time, loc.module))))
+    console.print_text(vt100.blue_fg(vt100.bold('Time: {0} PC: {1}'.format(loc.get('time'), loc.get('pc')))))
     console.enable_line_wrap()
 
     op = vt100.getch()
