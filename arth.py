@@ -6,24 +6,12 @@ import sys
 import subprocess
 import vt100
 
-# Time: 53 - pc: 186180 - module Format
-TIME_RE = re.compile('.*Time: (\d+)( - pc: (\d+) - module (.+))?')
-# \032\032M/Users/frantic/.opam/4.02.3/lib/ocaml/camlinternalFormat.ml:64903:65347:before
-LOCATION_RE = re.compile('.*\x1a\x1aM(.+):(.+):(.+):(before|after)', re.S)
-
-# 950   let ppf = pp_make_formatter output
-LINE_RE = re.compile('(\d+) ?(.*)')
-
-dbgr = subprocess.Popen(['ocamldebug', '-emacs', '/Users/frantic/code/flow/bin/flow', '--help'],
-    stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
-# Location = namedtuple('Location', ['time', 'pc', 'module'])
-loc = dict()
 
 debugger_log = open('/tmp/arth.log', 'w')
 def trace(text):
     debugger_log.write(text + '\n')
     debugger_log.flush()
+
 
 def read_until(stream, terminator):
     chunk = ''
@@ -32,7 +20,35 @@ def read_until(stream, terminator):
         if chunk.endswith(terminator):
             return chunk[:-len(terminator)]
 
-def debugger_command(cmd):
+
+# Time: 53 - pc: 186180 - module Format
+TIME_RE = re.compile('^(.*)Time: (\d+)( - pc: (\d+) - module (.+))?\n', re.MULTILINE)
+# \032\032M/Users/frantic/.opam/4.02.3/lib/ocaml/camlinternalFormat.ml:64903:65347:before
+LOCATION_RE = re.compile('^\x1a\x1aM(.+):(.+):(.+):(before|after)\n', re.MULTILINE)
+
+def parse_output(output):
+    context = dict()
+    def parse_time(match):
+        context['time'] = match.group(2)
+        context['pc'] = match.group(4)
+        context['module'] = match.group(5)
+        prefix = match.group(1)
+        if prefix:
+            return match.group(1) + '\n'
+        return ''
+
+    def parse_location(match):
+        context['file'] = match.group(1)
+        context['start'] = match.group(2)
+        context['end'] = match.group(3)
+        context['before_or_after'] = match.group(4)
+
+    output = re.sub(TIME_RE, parse_time, output)
+    output = re.sub(LOCATION_RE, parse_location, output)
+    return output, context
+
+
+def debugger_command(dbgr, cmd):
     if cmd != '':
         trace('>> ' + cmd + '\n')
         dbgr.stdin.write(cmd + '\n')
@@ -40,21 +56,11 @@ def debugger_command(cmd):
 
     output = read_until(dbgr.stdout, '(ocd) ')
     trace(output)
+    return parse_output(output)
 
-    match = TIME_RE.match(output)
-    if match:
-        loc['time'] = match.group(1)
-        loc['pc'] = match.group(3)
-        loc['module'] = match.group(4)
 
-    match = LOCATION_RE.match(output)
-    if match:
-        loc['file'] = match.group(1)
-        loc['start'] = match.group(2)
-        loc['end'] = match.group(3)
-        loc['before_or_after'] = match.group(4)
-
-    return output
+# 950   let ppf = pp_make_formatter output
+LINE_RE = re.compile('(\d+) ?(.*)')
 
 def hl(src):
     lines = []
@@ -77,55 +83,67 @@ def hl(src):
 
 
 
-print(debugger_command(''))
-# print(debugger_command('help'))
-# print(debugger_command('goto 200'))
-# print(debugger_command('bt'))
+def main():
+    console = vt100.Console()
+    dbgr = subprocess.Popen(['ocamldebug', '-emacs', '/Users/frantic/code/flow/bin/flow', '--help'],
+        stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
-console = vt100.Console()
+    print(debugger_command(dbgr, ''))
+    return repl(dbgr, console)
 
-op = ''
-while True:
-    console.disable_line_wrap()
-    listing = hl(debugger_command('list'))
-    if listing:
-        console.print_text((u'\u2500[ %s ]' % loc.get('file')) + u'\u2500' * 300)
-        console.print_text(listing)
-        console.print_text(u'\u2500' * 300)
-    else:
-        console.print_text(vt100.dim('(no source info)'))
-    console.print_text(vt100.blue_fg(vt100.bold('Time: {0} PC: {1}'.format(loc.get('time'), loc.get('pc')))))
-    console.enable_line_wrap()
 
-    op = vt100.getch()
+def repl(dbgr, console):
+    loc = dict()
+    def call(cmd):
+        output, context = debugger_command(dbgr, cmd)
+        loc.update(context)
+        return output
 
-    cmd = None
-    if op == ':' or op == ';':
-        cmd = console.safe_input(':')
-    if op == 'p':
-        cmd = 'print ' + console.safe_input('print ')
-
-    console.clear_last_render()
-
-    if cmd is not None:
-        if cmd.isdigit():
-            print(debugger_command('goto ' + cmd))
+    op = ''
+    while True:
+        console.disable_line_wrap()
+        listing = hl(call('list'))
+        if listing:
+            console.print_text((u'\u2500[ %s ]' % loc.get('file')) + u'\u2500' * 300)
+            console.print_text(listing)
+            console.print_text(u'\u2500' * 300)
         else:
-            print(vt100.blue_fg('>> ' + cmd))
-            print(debugger_command(cmd))
+            console.print_text(vt100.dim('(no source info)'))
+        console.print_text(vt100.blue_fg(vt100.bold('Time: {0} PC: {1}'.format(loc.get('time'), loc.get('pc')))))
+        console.enable_line_wrap()
 
-    if op == 'G':
-        print(debugger_command('run'))
-    if op == 'g':
-        print(debugger_command('reverse'))
-    if op == 's':
-        print(debugger_command('step'))
-    if op == 'S':
-        print(debugger_command('backstep'))
-    if op == 'j':
-        print(debugger_command('next'))
-    if op == 'k':
-        print(debugger_command('prev'))
+        op = vt100.getch()
 
-    if op == 'q':
-        sys.exit()
+        cmd = None
+        if op == ':' or op == ';':
+            cmd = console.safe_input(':')
+        if op == 'p':
+            cmd = 'print ' + console.safe_input('print ')
+
+        console.clear_last_render()
+
+        if cmd is not None:
+            if cmd.isdigit():
+                print(call('goto ' + cmd))
+            else:
+                print(vt100.blue_fg('>> ' + cmd))
+                print(call(d))
+
+        if op == 'G':
+            print(call('run'))
+        if op == 'g':
+            print(call('reverse'))
+        if op == 's':
+            print(call('step'))
+        if op == 'S':
+            print(call('backstep'))
+        if op == 'j':
+            print(call('next'))
+        if op == 'k':
+            print(call('prev'))
+
+        if op == 'q':
+            return 0
+
+if __name__ == '__main__':
+    sys.exit(main())
