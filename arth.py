@@ -24,7 +24,7 @@ def read_until(stream, terminator):
 # Time: 53 - pc: 186180 - module Format
 TIME_RE = re.compile('^(.*)Time: (\d+)( - pc: (\d+) - module (.+))?\n', re.MULTILINE)
 # \032\032M/Users/frantic/.opam/4.02.3/lib/ocaml/camlinternalFormat.ml:64903:65347:before
-LOCATION_RE = re.compile('^\x1a\x1aM(.+):(.+):(.+):(before|after)\n', re.MULTILINE)
+LOCATION_RE = re.compile('^\x1a\x1a(H|M(.+):(.+):(.+):(before|after))\n', re.MULTILINE)
 
 def parse_output(output):
     context = dict()
@@ -38,10 +38,10 @@ def parse_output(output):
         return ''
 
     def parse_location(match):
-        context['file'] = match.group(1)
-        context['start'] = match.group(2)
-        context['end'] = match.group(3)
-        context['before_or_after'] = match.group(4)
+        context['file'] = match.group(2)
+        context['start'] = match.group(3)
+        context['end'] = match.group(4)
+        context['before_or_after'] = match.group(5)
 
     output = re.sub(TIME_RE, parse_time, output)
     output = re.sub(LOCATION_RE, parse_location, output)
