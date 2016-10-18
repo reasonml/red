@@ -2,9 +2,12 @@
 
 from collections import namedtuple
 import re
+import os
 import sys
 import subprocess
 import vt100
+import readline
+import atexit
 
 
 debugger_log = open('/tmp/arth.log', 'w')
@@ -90,6 +93,15 @@ def hl(src):
 
 
 def main():
+    histfile = os.path.join(os.path.expanduser("~"), ".arth_history")
+    try:
+        readline.read_history_file(histfile)
+        readline.set_history_length(1000)
+    except IOError:
+        pass
+    atexit.register(readline.write_history_file, histfile)
+    del histfile
+
     console = vt100.Console()
     dbgr = subprocess.Popen(['ocamldebug', '-emacs', '/Users/frantic/code/flow/bin/flow', '--help'],
         stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
