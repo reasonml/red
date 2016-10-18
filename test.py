@@ -25,12 +25,19 @@ class TestStringMethods(unittest.TestCase):
         src = '\032\032H\n'
         self.assertEqual(arth.parse_output(src), ('', {'file': None, 'start': None, 'end': None, 'before_or_after': None}))
 
-    def test_split(self):
-        s = 'hello world'
-        self.assertEqual(s.split(), ['hello', 'world'])
-        # check that s.split fails when the separator is not a string
-        with self.assertRaises(TypeError):
-            s.split(2)
+    def test_parse_breakpoints(self):
+        src = 'No breakpoints.\n'
+        self.assertEqual(arth.parse_breakpoints(src), [])
+
+        src = '\n'.join([
+            'Num    Address  Where',
+            '  1    1646532  file src/flow.ml, line 62, characters 5-1272',
+            '  2      38632  file sys.ml, line 28, characters 31-41',
+            '',
+        ])
+        self.assertEqual(arth.parse_breakpoints(src), [{'num': 1, 'pc': 1646532, 'file': 'src/flow.ml', 'line': 62},
+            {'num': 2, 'pc': 38632, 'file': 'sys.ml', 'line': 28}])
+
 
 if __name__ == '__main__':
     unittest.main()

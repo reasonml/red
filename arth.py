@@ -55,6 +55,29 @@ def parse_output(output):
     return output, context
 
 
+# 1    1646532  file src/flow.ml, line 62, characters 5-1272
+BREAKPOINT_RE = re.compile("^\s*(\d+)\s+(\d+)\s+file (\S+), line (\d+)", re.MULTILINE)
+
+def parse_breakpoints(output):
+    breakpoints = []
+    for match in BREAKPOINT_RE.finditer(output):
+        breakpoints.append({'num': int(match.group(1)), 'pc': int(match.group(2)),
+            'file': match.group(3), 'line': int(match.group(4))})
+
+    return breakpoints
+
+def breakpoint_lines_for_file(breakpoints, file_name):
+    if not file_name:
+        return []
+
+    lines = []
+    for b in breakpoints:
+        if file_name.endswith(b.get('file')):
+            lines.append(b.get('line'))
+
+    return lines
+
+
 def debugger_command(dbgr, cmd):
     if cmd != '':
         trace('>> ' + cmd + '\n')
@@ -69,7 +92,7 @@ def debugger_command(dbgr, cmd):
 # 950   let ppf = pp_make_formatter output
 LINE_RE = re.compile('(\d+) ?(.*)')
 
-def hl(src):
+def hl(src, breakpoint_lines):
     lines = []
     for line in src.split('\n'):
         match = LINE_RE.match(line)
@@ -78,15 +101,25 @@ def hl(src):
                 lines.append(line + '\n')
             continue
 
-        line_number = vt100.dim(match.group(1).rjust(5, ' ') + ' ')
+        line_number = match.group(1)
         text = match.group(2)
-
+        has_breakpoint = int(line_number) in breakpoint_lines
         is_current = '<|a|>' in text or '<|b|>' in text
-        if is_current:
-            line_number = vt100.reverse(line_number)
-            text = vt100.reverse(text.replace('<|a|>', '').replace('<|b|>', '').ljust(80))
+        text = text.replace('<|a|>', '').replace('<|b|>', '')
 
-        lines.append(line_number + text + '\n')
+        symbol = u'\u2022' if has_breakpoint else ' '
+
+        if not is_current:
+            symbol = vt100.red(symbol)
+
+        result = ' ' + symbol + vt100.dim(line_number.rjust(3)) + ' ' + text.ljust(80)
+
+        if is_current:
+            if has_breakpoint:
+                result = vt100.red(result)
+            result = vt100.inverse(result)
+
+        lines.append(result + '\n')
 
     return ''.join(lines)
 
@@ -121,6 +154,7 @@ def repl(dbgr, console):
         'q': 'quit',
     }
     loc = dict()
+    breakpoints = list()
     def call(cmd):
         output, context = debugger_command(dbgr, cmd)
         loc.update(context)
@@ -129,14 +163,16 @@ def repl(dbgr, console):
     op = ''
     while dbgr.poll() is None:
         console.disable_line_wrap()
-        listing = hl(call('list'))
+        breakpoints = parse_breakpoints(call('info break'))
+        file_name = loc.get('file')
+        listing = hl(call('list'), breakpoint_lines_for_file(breakpoints, file_name))
         if listing:
             console.print_text((u'\u2500[ %s ]' % loc.get('file')) + u'\u2500' * 300)
             console.print_text(listing)
             console.print_text(u'\u2500' * 300)
         else:
             console.print_text(vt100.dim('(no source info)'))
-        console.print_text(vt100.blue_fg(vt100.bold('Time: {0} PC: {1}'.format(loc.get('time'), loc.get('pc')))))
+        console.print_text(vt100.blue(vt100.bold('Time: {0} PC: {1}'.format(loc.get('time'), loc.get('pc')))))
         console.enable_line_wrap()
 
         op = vt100.getch()
@@ -162,7 +198,7 @@ def repl(dbgr, console):
 
 
         if echo:
-            print(vt100.blue_fg('>> ' + cmd))
+            print(vt100.blue('>> ' + cmd))
 
         output = call(cmd)
         if output:

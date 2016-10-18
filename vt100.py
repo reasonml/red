@@ -1,16 +1,34 @@
 import subprocess, sys
 
-# See http://www.ccs.neu.edu/research/gpc/MSim/vona/terminal/VT100_Escape_Codes.html
+# See https://github.com/chalk/ansi-styles
 
-def color(code, text): return '\033[%sm%s\033[0m' % (code, text)
-def bold(text): return color(1, text)
-def dim(text): return color(2, text)
-def reverse(text): return color(7, text)
-def underline(text): return color(4, text)
-def blue_fg(text): return color(34, text)
-def red_fg(text): return color(31, text)
-def red_bg(text): return color(41, text)
-def green_bg(text): return color(42, text)
+def reset(text):         return '\033[0m' + text + '\033[0m'
+def bold(text):          return '\033[1m' + text + '\033[22m'
+def dim(text):           return '\033[2m' + text + '\033[22m'
+def italic(text):        return '\033[3m' + text + '\033[23m'
+def underline(text):     return '\033[4m' + text + '\033[24m'
+def inverse(text):       return '\033[7m' + text + '\033[27m'
+def hidden(text):        return '\033[8m' + text + '\033[28m'
+def strikethrough(text): return '\033[9m' + text + '\033[29m'
+def black(text):         return '\033[30m' + text + '\033[39m'
+def red(text):           return '\033[31m' + text + '\033[39m'
+def green(text):         return '\033[32m' + text + '\033[39m'
+def yellow(text):        return '\033[33m' + text + '\033[39m'
+def blue(text):          return '\033[34m' + text + '\033[39m'
+def magenta(text):       return '\033[35m' + text + '\033[39m'
+def cyan(text):          return '\033[36m' + text + '\033[39m'
+def white(text):         return '\033[37m' + text + '\033[39m'
+def gray(text):          return '\033[90m' + text + '\033[39m'
+def grey(text):          return '\033[90m' + text + '\033[39m'
+def black_bg(text):      return '\033[40m' + text + '\033[49m'
+def red_bg(text):        return '\033[41m' + text + '\033[49m'
+def green_bg(text):      return '\033[42m' + text + '\033[49m'
+def yellow_bg(text):     return '\033[43m' + text + '\033[49m'
+def blue_bg(text):       return '\033[44m' + text + '\033[49m'
+def magenta_bg(text):    return '\033[45m' + text + '\033[49m'
+def cyan_bg(text):       return '\033[46m' + text + '\033[49m'
+def white_bg(text):      return '\033[47m' + text + '\033[49m'
+
 
 class Console:
     def __init__(self):
