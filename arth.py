@@ -15,8 +15,12 @@ def trace(text):
 
 def read_until(stream, terminator):
     chunk = ''
-    while True:
-        chunk += stream.read(1)
+    while not stream.closed:
+        byte = stream.read(1)
+        if not byte:
+            return chunk
+
+        chunk += byte
         if chunk.endswith(terminator):
             return chunk[:-len(terminator)]
 
@@ -88,11 +92,20 @@ def main():
     dbgr = subprocess.Popen(['ocamldebug', '-emacs', '/Users/frantic/code/flow/bin/flow', '--help'],
         stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
-    print(debugger_command(dbgr, ''))
+    print(debugger_command(dbgr, '')[0])
     return repl(dbgr, console)
 
 
 def repl(dbgr, console):
+    built_in_commands = {
+        'G': 'run',
+        'g': 'reverse',
+        's': 'step',
+        'S': 'backstep',
+        'j': 'next',
+        'k': 'prev',
+        'q': 'quit',
+    }
     loc = dict()
     def call(cmd):
         output, context = debugger_command(dbgr, cmd)
@@ -100,7 +113,7 @@ def repl(dbgr, console):
         return output
 
     op = ''
-    while True:
+    while dbgr.poll() is None:
         console.disable_line_wrap()
         listing = hl(call('list'))
         if listing:
@@ -114,36 +127,32 @@ def repl(dbgr, console):
 
         op = vt100.getch()
 
-        cmd = None
+        echo = False
+
         if op == ':' or op == ';':
             cmd = console.safe_input(':')
-        if op == 'p':
+            if cmd.isdigit():
+                cmd = 'goto ' + cmd
+            else:
+                echo = True
+        elif op == 'p':
             cmd = 'print ' + console.safe_input('print ')
+            echo = True
+        else:
+            cmd = built_in_commands.get(op)
 
         console.clear_last_render()
 
-        if cmd is not None:
-            if cmd.isdigit():
-                print(call('goto ' + cmd))
-            else:
-                print(vt100.blue_fg('>> ' + cmd))
-                print(call(d))
+        if not cmd:
+            continue
 
-        if op == 'G':
-            print(call('run'))
-        if op == 'g':
-            print(call('reverse'))
-        if op == 's':
-            print(call('step'))
-        if op == 'S':
-            print(call('backstep'))
-        if op == 'j':
-            print(call('next'))
-        if op == 'k':
-            print(call('prev'))
 
-        if op == 'q':
-            return 0
+        if echo:
+            print(vt100.blue_fg('>> ' + cmd))
+
+        output = call(cmd)
+        if output:
+            print output
 
 if __name__ == '__main__':
     sys.exit(main())
