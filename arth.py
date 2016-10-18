@@ -71,8 +71,10 @@ def hl(src):
     for line in src.split('\n'):
         match = LINE_RE.match(line)
         if not match:
-            lines.append(line + '\n')
+            if line:
+                lines.append(line + '\n')
             continue
+
         line_number = vt100.dim(match.group(1).rjust(5, ' ') + ' ')
         text = match.group(2)
 
