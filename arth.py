@@ -8,6 +8,7 @@ import subprocess
 import vt100
 import readline
 import atexit
+import textwrap
 
 
 debugger_log = open('/tmp/arth.log', 'w')
@@ -109,6 +110,7 @@ def hl(src, breakpoint_lines):
 
         symbol = u'\u2022' if has_breakpoint else ' '
 
+        # Can't use red twice, the closing color tag will mess the outputs
         if not is_current:
             symbol = vt100.red(symbol)
 
@@ -123,6 +125,17 @@ def hl(src, breakpoint_lines):
 
     return ''.join(lines)
 
+
+def format_breakpoints(breakpoints):
+    if len(breakpoints) == 0:
+        return vt100.dim('  No breakpoins added yet')
+
+    lines = []
+    for b in breakpoints:
+        lines.append(vt100.red(str(b.get('num')).rjust(5)) + ' ' + (b.get('file') + ':' + str(b.get('line'))).ljust(30)
+            + vt100.dim('pc = ' + str(b.get('pc'))))
+
+    return '\n'.join(lines)
 
 
 def main():
@@ -188,6 +201,25 @@ def repl(dbgr, console):
         elif op == 'p':
             cmd = 'print ' + console.safe_input('print ')
             echo = True
+        elif op == 'b':
+            console.print_text(vt100.bold(vt100.blue('\nBREAKPOINTS')))
+            console.print_text(format_breakpoints(breakpoints))
+            console.print_text(textwrap.dedent("""
+                42        - add breakpoint for current module (%s) at line 42
+                Module 42 - add breakpoint for specified module Module at line 42
+                -2        - remove breakoint #2
+                <enter>   - do nothing
+            """ % (loc.get('module'))))
+            bp_cmd = console.safe_input(': ')
+            cmd = ''
+            if bp_cmd:
+                if bp_cmd.startswith('-'):
+                    cmd = 'delete ' + bp_cmd[1:]
+                elif bp_cmd.isdigit():
+                    if loc.get('module'):
+                        cmd = 'break @ ' + loc.get('module') + ' ' + bp_cmd
+                else:
+                    cmd = 'break @ ' + bp_cmd
         else:
             cmd = built_in_commands.get(op)
 
