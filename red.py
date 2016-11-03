@@ -106,8 +106,8 @@ def hl(src, breakpoint_lines):
         text = match.group(2)
         has_breakpoint = int(line_number) in breakpoint_lines
         is_current = '<|a|>' in text or '<|b|>' in text
-        a_ptrn = re.compile("(\S*)<\|a\|>")
-        b_ptrn = re.compile("<\|b\|>(\S*)")
+        a_ptrn = re.compile("(\S?)<\|a\|>")
+        b_ptrn = re.compile("<\|b\|>(\S?)")
 
         text = re.sub(a_ptrn, vt100.bold('\\1'), text)
         text = re.sub(b_ptrn, vt100.bold('\\1'), text)
@@ -137,8 +137,8 @@ def format_breakpoints(breakpoints):
 
     lines = []
     for b in breakpoints:
-        lines.append(vt100.red(str(b.get('num')).rjust(5)) + ' ' + (b.get('file') + ':' + str(b.get('line'))).ljust(30)
-            + vt100.dim('pc = ' + str(b.get('pc'))))
+        lines.append(vt100.red(('#' + str(b.get('num'))).rjust(5)) + ' ' + (b.get('file') + ':' + str(b.get('line'))).ljust(30)
+            + vt100.dim(' pc = ' + str(b.get('pc'))))
 
     return '\n'.join(lines)
 
@@ -213,14 +213,14 @@ def repl(dbgr, console):
                 42        - add breakpoint for current module (%s) at line 42
                 Module 42 - add breakpoint for specified module Module at line 42
                 Module.foo - add breakpoint for Module.foo function
-                -2        - remove breakoint #2
+                -#2       - remove breakoint #2
                 <enter>   - do nothing
             """ % (loc.get('module'))))
             bp_cmd = console.safe_input(': ')
             cmd = ''
             if bp_cmd:
-                if bp_cmd.startswith('-'):
-                    cmd = 'delete ' + bp_cmd[1:]
+                if bp_cmd.startswith('-#'):
+                    cmd = 'delete ' + bp_cmd[2:]
                 elif bp_cmd.isdigit():
                     if loc.get('module'):
                         cmd = 'break @ ' + loc.get('module') + ' ' + bp_cmd
