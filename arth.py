@@ -85,7 +85,7 @@ def debugger_command(dbgr, cmd):
         dbgr.stdin.write(cmd + '\n')
         dbgr.stdin.flush()
 
-    output = read_until(dbgr.stdout, '(ocd) ')
+    output = read_until(dbgr.stdout, '(ocd) ') # TODO: support (y or n)
     trace(output)
     return parse_output(output)
 
@@ -106,7 +106,12 @@ def hl(src, breakpoint_lines):
         text = match.group(2)
         has_breakpoint = int(line_number) in breakpoint_lines
         is_current = '<|a|>' in text or '<|b|>' in text
-        text = text.replace('<|a|>', '').replace('<|b|>', '')
+        a_ptrn = re.compile("(\S*)<\|a\|>")
+        b_ptrn = re.compile("<\|b\|>(\S*)")
+
+        text = re.sub(a_ptrn, vt100.bold('\\1'), text)
+        text = re.sub(b_ptrn, vt100.bold('\\1'), text)
+        # text = text.replace('<|a|>', '').replace('<|b|>', '')
 
         symbol = u'\u2022' if has_breakpoint else ' '
 
@@ -114,7 +119,7 @@ def hl(src, breakpoint_lines):
         if not is_current:
             symbol = vt100.red(symbol)
 
-        result = ' ' + symbol + vt100.dim(line_number.rjust(3)) + ' ' + text.ljust(80)
+        result = ' ' + symbol + ' ' + vt100.dim(line_number.rjust(3)) + ' ' + text.ljust(80)
 
         if is_current:
             if has_breakpoint:
@@ -152,14 +157,14 @@ def main():
     dbgr = subprocess.Popen(['ocamldebug', '-emacs', '/Users/frantic/code/flow/bin/flow', '--help'],
         stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
-    print(debugger_command(dbgr, '')[0])
+    print(debugger_command(dbgr, '')[0]) # TODO: issue `start`?
     return repl(dbgr, console)
 
 
 def repl(dbgr, console):
     built_in_commands = {
-        'G': 'run',
-        'g': 'reverse',
+        'G': 'run',  # also r, >
+        'g': 'reverse', # also R, <
         's': 'step',
         'S': 'backstep',
         'j': 'next',
@@ -207,6 +212,7 @@ def repl(dbgr, console):
             console.print_text(textwrap.dedent("""
                 42        - add breakpoint for current module (%s) at line 42
                 Module 42 - add breakpoint for specified module Module at line 42
+                Module.foo - add breakpoint for Module.foo function
                 -2        - remove breakoint #2
                 <enter>   - do nothing
             """ % (loc.get('module'))))
@@ -219,7 +225,13 @@ def repl(dbgr, console):
                     if loc.get('module'):
                         cmd = 'break @ ' + loc.get('module') + ' ' + bp_cmd
                 else:
-                    cmd = 'break @ ' + bp_cmd
+                    if ' ' in bp_cmd:
+                        cmd = 'break @ ' + bp_cmd
+                    else:
+                        cmd = 'break ' + bp_cmd
+        elif op == 'B':
+            # TODO: Toggle breakpoint on current line
+            pass
         else:
             cmd = built_in_commands.get(op)
 
