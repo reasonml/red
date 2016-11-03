@@ -245,6 +245,8 @@ def repl(dbgr, console):
             print(vt100.blue('>> ' + cmd))
 
         output = call(cmd)
+        if cmd.startswith('break') and not output:
+            print(vt100.red('Breakpoint was not set'))
         if output:
             print output
 
