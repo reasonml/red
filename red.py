@@ -11,7 +11,7 @@ import atexit
 import textwrap
 
 
-debugger_log = open('/tmp/arth.log', 'w')
+debugger_log = open('/tmp/red.log', 'w')
 def trace(text):
     debugger_log.write(text + '\n')
     debugger_log.flush()
@@ -144,7 +144,7 @@ def format_breakpoints(breakpoints):
 
 
 def main():
-    histfile = os.path.join(os.path.expanduser("~"), ".arth_history")
+    histfile = os.path.join(os.path.expanduser("~"), ".red_history")
     try:
         readline.read_history_file(histfile)
         readline.set_history_length(1000)
