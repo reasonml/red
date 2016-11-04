@@ -79,11 +79,11 @@ class Breakpoint(Command):
 
             {0}
 
-            42        - add breakpoint for current module ({1}) at line 42
-            Module 42 - add breakpoint for specified module Module at line 42
-            Module.foo - add breakpoint for Module.foo function
-            -#2       - remove breakoint #2
-            <enter>   - do nothing
+            <bold>42        </bold> - add breakpoint for current module ({1}) at line 42
+            <bold>Module:42 </bold> - add breakpoint for specified module Module at line 42
+            <bold>Module.foo</bold> - add breakpoint for Module.foo function
+            <bold>-#2       </bold> - remove breakoint #2
+            <bold><enter>   </bold> - do nothing
 
 
             <dim>(break)</dim> """)).format(self.format_breakpoints(breakpoints), loc.get('module'))
@@ -97,8 +97,8 @@ class Breakpoint(Command):
                 if loc.get('module'):
                     return 'break @ ' + loc.get('module') + ' ' + command
             else:
-                if ' ' in command:
-                    return 'break @ ' + command
+                if ':' in command:
+                    return 'break @ ' + command.replace(':', ' ')
                 else:
                     return 'break ' + command
 

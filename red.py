@@ -144,7 +144,7 @@ def format_breakpoints(breakpoints):
     return '\n'.join(lines)
 
 
-def main():
+def main(args):
     histfile = os.path.join(os.path.expanduser("~"), ".red_history")
     try:
         readline.read_history_file(histfile)
@@ -154,16 +154,33 @@ def main():
     atexit.register(readline.write_history_file, histfile)
     del histfile
 
-    console = vt100.Console()
-    dbgr = subprocess.Popen(['ocamldebug', '-emacs', '/Users/frantic/code/flow/bin/flow', '--help'],
+
+    command_line = []
+    breakpoints = []
+    for arg in args:
+        if arg.startswith('@'):
+            breakpoints.append(arg[1:])
+        else:
+            command_line.append(arg)
+    dbgr = subprocess.Popen(['ocamldebug', '-emacs'] + command_line,
         stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
-    print(debugger_command(dbgr, '')[0])
+    print(debugger_command(dbgr, '')[0].replace('\tOCaml Debugger version ', vt100.red(u'\u2022 RED') + ' OCamlDebug v'))
+    print(vt100.dim('Press ? for help'))
     print(debugger_command(dbgr, 'start')[0])
-    return repl(dbgr, console)
+
+    auto_run = True
+    for bp in breakpoints:
+        if bp == '':
+            auto_run = False
+        else:
+            print(debugger_command(dbgr, 'break @ ' + bp.replace(':', ' '))[0])
+
+    console = vt100.Console()
+    return repl(dbgr, console, auto_run)
 
 
-def repl(dbgr, console):
+def repl(dbgr, console, auto_run):
     command_classes = commands.all_command_classes()
 
     loc = dict()
@@ -179,6 +196,9 @@ def repl(dbgr, console):
         if len(lines) > 1:
             console.print_text('\n'.join(lines[:-1]))
         return console.safe_input(lines[-1])
+
+    if auto_run:
+        print(execute('run'))
 
     op = ''
     show_help = False
@@ -225,5 +245,5 @@ def find_command_for_key(command_classes, key):
 
 
 if __name__ == '__main__':
-    sys.exit(main())
+    sys.exit(main(sys.argv[1:]))
 
