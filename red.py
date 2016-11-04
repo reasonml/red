@@ -15,7 +15,7 @@ import inspect
 
 debugger_log = open('/tmp/red.log', 'w')
 def trace(text):
-    debugger_log.write(text + '\n')
+    debugger_log.write(text)
     debugger_log.flush()
 
 
@@ -25,6 +25,8 @@ def read_until(stream, terminator):
         byte = stream.read(1)
         if not byte:
             return chunk
+
+        trace(byte)
 
         chunk += byte
         if chunk.endswith(terminator):
@@ -83,12 +85,11 @@ def breakpoint_lines_for_file(breakpoints, file_name):
 
 def debugger_command(dbgr, cmd):
     if cmd != '':
-        trace('>> ' + cmd + '\n')
+        trace(cmd + '\n')
         dbgr.stdin.write(cmd + '\n')
         dbgr.stdin.flush()
 
     output = read_until(dbgr.stdout, '(ocd) ') # TODO: support (y or n)
-    trace(output)
     return parse_output(output)
 
 
