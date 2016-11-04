@@ -37,6 +37,18 @@ class Prev(Shortcut):
     COMMAND = 'prev'
 
 
+class Step(Shortcut):
+    KEYS = [']', 's']
+    HELP = 'Step forward'
+    COMMAND = 'step'
+
+
+class Backstep(Shortcut):
+    KEYS = ['[', 'S']
+    HELP = 'Step backward'
+    COMMAND = 'backstep'
+
+
 class Print(Command):
     KEYS = ['p']
     HELP = 'Print variable value'
