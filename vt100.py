@@ -1,4 +1,4 @@
-import subprocess, sys
+import subprocess, sys, re
 
 # See https://github.com/chalk/ansi-styles
 
@@ -29,6 +29,24 @@ def magenta_bg(text):    return '\033[45m' + text + '\033[49m'
 def cyan_bg(text):       return '\033[46m' + text + '\033[49m'
 def white_bg(text):      return '\033[47m' + text + '\033[49m'
 
+def tag_to_color(match):
+    open_tag = match.group(1)
+    text = match.group(2)
+
+    color_fn = globals()[open_tag]
+    return color_fn(from_tags_unsafe(text))
+
+
+def from_tags_unsafe(text):
+    """
+    Replaces "color" tags in text with actual colors. Example:
+
+        <red_fg>Hello</red_fg>
+
+    Don't call this function on user-provided input, it uses dark runtime
+    magic to lookup color functions
+    """
+    return re.sub(r'<([_\w]+)>(.*)<\/\1>', tag_to_color, text)
 
 class Console:
     def __init__(self):

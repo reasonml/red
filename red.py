@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 from collections import namedtuple
+import commands
 import re
 import os
 import sys
@@ -9,6 +10,7 @@ import vt100
 import readline
 import atexit
 import textwrap
+import inspect
 
 
 debugger_log = open('/tmp/red.log', 'w')
@@ -111,7 +113,6 @@ def hl(src, breakpoint_lines):
 
         text = re.sub(a_ptrn, vt100.bold('\\1'), text)
         text = re.sub(b_ptrn, vt100.bold('\\1'), text)
-        # text = text.replace('<|a|>', '').replace('<|b|>', '')
 
         symbol = u'\u2022' if has_breakpoint else ' '
 
@@ -157,98 +158,72 @@ def main():
     dbgr = subprocess.Popen(['ocamldebug', '-emacs', '/Users/frantic/code/flow/bin/flow', '--help'],
         stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
-    print(debugger_command(dbgr, '')[0]) # TODO: issue `start`?
+    print(debugger_command(dbgr, '')[0])
+    print(debugger_command(dbgr, 'start')[0])
     return repl(dbgr, console)
 
 
 def repl(dbgr, console):
-    built_in_commands = {
-        'G': 'run',  # also r, >
-        'g': 'reverse', # also R, <
-        's': 'step',
-        'S': 'backstep',
-        'j': 'next',
-        'k': 'prev',
-        'q': 'quit',
-    }
+    command_classes = commands.all_command_classes()
+
     loc = dict()
     breakpoints = list()
-    def call(cmd):
+
+    def execute(cmd):
         output, context = debugger_command(dbgr, cmd)
         loc.update(context)
         return output
 
+    def prompt(text):
+        lines = text.split('\n')
+        if len(lines) > 1:
+            console.print_text('\n'.join(lines[:-1]))
+        return console.safe_input(lines[-1])
+
     op = ''
+    show_help = False
     while dbgr.poll() is None:
+        breakpoints = parse_breakpoints(execute('info break'))
         console.disable_line_wrap()
-        breakpoints = parse_breakpoints(call('info break'))
         file_name = loc.get('file')
-        listing = hl(call('list'), breakpoint_lines_for_file(breakpoints, file_name))
+        listing = hl(execute('list'), breakpoint_lines_for_file(breakpoints, file_name))
         if listing:
             console.print_text((u'\u2500[ %s ]' % loc.get('file')) + u'\u2500' * 300)
             console.print_text(listing)
             console.print_text(u'\u2500' * 300)
         else:
-            console.print_text(vt100.dim('(no source info)'))
+            module = loc.get('module')
+            if module:
+                console.print_text(vt100.dim('(no source info for {0})'.format(module)))
+            else:
+                console.print_text(vt100.dim('(no source info)'))
         console.print_text(vt100.blue(vt100.bold('Time: {0} PC: {1}'.format(loc.get('time'), loc.get('pc')))))
         console.enable_line_wrap()
 
+        if show_help:
+            console.print_text(help(command_classes))
+
         op = vt100.getch()
-
-        echo = False
-
-        if op == ':' or op == ';':
-            cmd = console.safe_input(':')
-            if cmd.isdigit():
-                cmd = 'goto ' + cmd
-            else:
-                echo = True
-        elif op == 'p':
-            cmd = 'print ' + console.safe_input('print ')
-            echo = True
-        elif op == 'b':
-            console.print_text(vt100.bold(vt100.blue('\nBREAKPOINTS')))
-            console.print_text(format_breakpoints(breakpoints))
-            console.print_text(textwrap.dedent("""
-                42        - add breakpoint for current module (%s) at line 42
-                Module 42 - add breakpoint for specified module Module at line 42
-                Module.foo - add breakpoint for Module.foo function
-                -#2       - remove breakoint #2
-                <enter>   - do nothing
-            """ % (loc.get('module'))))
-            bp_cmd = console.safe_input(': ')
-            cmd = ''
-            if bp_cmd:
-                if bp_cmd.startswith('-#'):
-                    cmd = 'delete ' + bp_cmd[2:]
-                elif bp_cmd.isdigit():
-                    if loc.get('module'):
-                        cmd = 'break @ ' + loc.get('module') + ' ' + bp_cmd
-                else:
-                    if ' ' in bp_cmd:
-                        cmd = 'break @ ' + bp_cmd
-                    else:
-                        cmd = 'break ' + bp_cmd
-        elif op == 'B':
-            # TODO: Toggle breakpoint on current line
-            pass
-        else:
-            cmd = built_in_commands.get(op)
-
-        console.clear_last_render()
-
-        if not cmd:
+        show_help = op == '?'
+        cmd_cls = find_command_for_key(command_classes, op)
+        if not cmd_cls:
+            console.clear_last_render()
             continue
 
+        output = cmd_cls().run(execute, prompt, {'breakpoints': breakpoints, 'loc': loc})
+        console.clear_last_render()
+        if output and len(output):
+            print(output)
 
-        if echo:
-            print(vt100.blue('>> ' + cmd))
+def help(command_classes):
+    return '\n'.join(['{0}\t{1}'.format(vt100.bold(cls.KEYS[0]), cls.HELP) for cls in command_classes])
 
-        output = call(cmd)
-        if cmd.startswith('break') and not output:
-            print(vt100.red('Breakpoint was not set'))
-        if output:
-            print output
+def find_command_for_key(command_classes, key):
+    for cls in command_classes:
+        if key in cls.KEYS:
+            return cls
+
 
 if __name__ == '__main__':
     sys.exit(main())
+
