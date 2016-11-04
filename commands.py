@@ -49,6 +49,37 @@ class Backstep(Shortcut):
     COMMAND = 'backstep'
 
 
+class Timetravel(Shortcut):
+    KEYS = ['t']
+    HELP = 'Travel to specified time'
+
+    def run(self, execute, prompt, ctx):
+        banner = vt100.from_tags_unsafe(textwrap.dedent("""
+            <bold><blue>TIME TRAVEL</blue></bold>
+
+            <bold>1337 </bold> - jump to specified time
+            <bold>+100 </bold> - jump 100 time units forward
+            <bold>-100 </bold> - jump 100 time units backwards
+
+            <dim>(time travel)</dim> """))
+
+        time = prompt(banner)
+        if not len(time):
+            return
+
+        now = int(ctx['loc'].get('time') or 0)
+        if time.startswith('-'):
+            location = now - int(time[1:])
+        elif time.startswith('+'):
+            location = now + int(time[1:])
+        elif time.isdigit():
+            location = int(time)
+        else:
+            return
+
+        return execute('goto ' + str(location))
+
+
 class Print(Command):
     KEYS = ['p']
     HELP = 'Print variable value'
