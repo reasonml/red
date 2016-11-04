@@ -19,7 +19,7 @@ def trace(text):
     debugger_log.flush()
 
 
-def read_until(stream, terminator):
+def read_until(stream, terminators):
     chunk = ''
     while not stream.closed:
         byte = stream.read(1)
@@ -29,8 +29,9 @@ def read_until(stream, terminator):
         trace(byte)
 
         chunk += byte
-        if chunk.endswith(terminator):
-            return chunk[:-len(terminator)]
+        for terminator in terminators:
+            if chunk.endswith(terminator):
+                return chunk[:-len(terminator)]
 
 
 # Time: 53 - pc: 186180 - module Format
@@ -89,7 +90,7 @@ def debugger_command(dbgr, cmd):
         dbgr.stdin.write(cmd + '\n')
         dbgr.stdin.flush()
 
-    output = read_until(dbgr.stdout, '(ocd) ') # TODO: support (y or n)
+    output = read_until(dbgr.stdout, ['(ocd) ', '(y or n) '])
     return parse_output(output)
 
 
@@ -231,13 +232,17 @@ def repl(dbgr, console, auto_run):
             console.clear_last_render()
             continue
 
+        console.print_text(vt100.bold(op) + ' ' + vt100.dim(cmd_cls.HELP))
         output = cmd_cls().run(execute, prompt, {'breakpoints': breakpoints, 'loc': loc})
         console.clear_last_render()
         if output and len(output):
             print(output)
 
 def help(command_classes):
-    return '\n'.join(['{0}\t{1}'.format(vt100.bold(cls.KEYS[0]), cls.HELP) for cls in command_classes])
+    return '\n'.join([
+        '{0}\t{1}'.format(vt100.bold(cls.KEYS[0]), cls.HELP)
+        for cls in command_classes
+        if not hasattr(command_classes, 'HIDDEN')])
 
 def find_command_for_key(command_classes, key):
     for cls in command_classes:

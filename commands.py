@@ -49,8 +49,22 @@ class Backstep(Shortcut):
     COMMAND = 'backstep'
 
 
+class Yes(Shortcut):
+    KEYS = ['y']
+    HELP = 'Answer "y" to the question'
+    COMMAND = 'y'
+    HIDDEN = True
+
+
+class No(Shortcut):
+    KEYS = ['n']
+    HELP = 'Answer "n" to the question'
+    COMMAND = 'n'
+    HIDDEN = True
+
+
 class Timetravel(Shortcut):
-    KEYS = ['t']
+    KEYS = ['t', 'g']
     HELP = 'Travel to specified time'
 
     def run(self, execute, prompt, ctx):
@@ -166,7 +180,8 @@ class Custom(Command):
 
 
 def all_command_classes():
-    with open(__file__, 'r') as f:
+    # Suck hack, wow
+    with open(__file__.replace('.pyc', '.py'), 'r') as f:
         content = f.read()
 
     class_pos = lambda pair: content.find('class ' + pair[0])
