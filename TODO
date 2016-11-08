@@ -3,3 +3,8 @@
 [ ] Usage example when no arguments is given
 [ ] Check the binary had debug information
 [ ] Breakpoints: guess the module by substring, print similar if match fails
+[ ] Save and restore Breakpoints
+[ ] Toggle breakpoint at given line
+[ ] Highlight breakpoint added/removed confirmation
+[ ] Explore history depth settings
+[ ] Print-and-continue breakpoint
