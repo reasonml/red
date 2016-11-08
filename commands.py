@@ -14,13 +14,13 @@ class Shortcut(Command):
 
 
 class Run(Shortcut):
-    KEYS = ['>', 'r', 'G']
+    KEYS = ['>', 'r']
     HELP = 'Run the program forward'
     COMMAND = 'run'
 
 
 class Reverse(Shortcut):
-    KEYS = ['<', 'R', 'g']
+    KEYS = ['<', 'R']
     HELP = 'Run the program backward'
     COMMAND = 'reverse'
 
