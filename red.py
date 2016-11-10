@@ -164,6 +164,11 @@ def main(args):
             breakpoints.append(arg[1:])
         else:
             command_line.append(arg)
+
+    if len(command_line) == 0:
+        print('Usage: red /path/to/your/target.byte')
+        return 1
+
     dbgr = subprocess.Popen(['ocamldebug', '-emacs'] + command_line,
         stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
