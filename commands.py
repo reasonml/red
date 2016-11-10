@@ -1,3 +1,4 @@
+import re
 import sys
 import vt100
 import inspect
@@ -92,6 +93,30 @@ class Timetravel(Shortcut):
             return
 
         return execute('goto ' + str(location))
+
+
+class Modules(Command):
+    KEYS = ['m']
+    HELP = 'Show available modules'
+
+    std_modules = re.compile('(' + '\\b|\\b'.join([
+            "Arg", "Arg_helper", "Arith_status", "Array", "ArrayLabels", "Ast_helper", "Ast_invariants",
+            "Ast_iterator", "Ast_mapper", "Asttypes", "Attr_helper", "Big_int", "Bigarray", "Buffer",
+            "Builtin_attributes", "Bytes", "BytesLabels", "Callback", "CamlinternalFormat",
+            "CamlinternalFormatBasics", "CamlinternalLazy", "CamlinternalMod", "CamlinternalOO", "Ccomp",
+            "Char", "Clflags", "Complex", "Condition", "Config", "Consistbl", "Depend", "Digest",
+            "Docstrings", "Dynlink", "Ephemeron", "Event", "Filename", "Format", "Gc", "Genlex", "Graphics",
+            "GraphicsX11", "Hashtbl", "Identifiable", "Int32", "Int64", "Lazy", "Lexer", "Lexing", "List",
+            "ListLabels", "Location", "Longident", "Map", "Marshal", "Misc", "MoreLabels", "Mutex",
+            "Nativeint", "Num", "Numbers", "Obj", "Oo", "Parse", "Parser", "Parsetree", "Parsing",
+            "Pervasives", "Pprintast", "Printast", "Printexc", "Printf", "Queue", "Random", "Ratio",
+            "Scanf", "Set", "Sort", "Spacetime", "Stack", "Std_exit", "StdLabels", "Str", "Stream", "String",
+            "StringLabels", "Strongly_connected_components", "Syntaxerr", "Sys", "Tbl", "Terminfo", "Thread",
+            "ThreadUnix", "Timings", "Uchar", "Unix", "UnixLabels", "Warnings", "Weak"
+        ]) + ')')
+
+    def run(self, execute, prompt, ctx):
+        return re.sub(Modules.std_modules, vt100.dim('\\1'), execute('info modules'))
 
 
 class Print(Command):

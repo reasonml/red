@@ -1,5 +1,5 @@
 [ ] Breakpoints don't activate before module is loaded
-[ ] Modules list command
+[x] Modules list command
 [x] Usage example when no arguments is given
 [ ] Check the binary had debug information
 [ ] Breakpoints: guess the module by substring, print similar if match fails
