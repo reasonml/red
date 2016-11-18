@@ -2,6 +2,10 @@
 
 Better UX for OCamlDebug. Works with Ocaml and [Reason](https://facebook.github.io/reason/) code.
 
+<img src=".github/screenshot.png" width="491" height="431">
+
+<a href="https://www.youtube.com/watch?v=2DiZ1fbtdnE">Watch Video</a>
+
 ### Features:
 
 1. Zero config, just prepend your command with `red`
