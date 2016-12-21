@@ -1,0 +1,25 @@
+{
+  "name": "reason-red",
+  "version": "0.0.0",
+  "description": "Reason Debugger",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/frantic/red.git"
+  },
+  "keywords": [
+    "reason",
+    "ocaml",
+    "debugger",
+    "ocamldebug"
+  ],
+  "author": "Frantic",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/frantic/red/issues"
+  },
+  "homepage": "https://github.com/frantic/red#readme"
+}
