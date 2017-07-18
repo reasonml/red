@@ -1,6 +1,6 @@
 # RED
 
-Better UX for OCamlDebug. Works with Ocaml and [Reason](https://facebook.github.io/reason/) code.
+Better UX for OCamlDebug. Works with Ocaml and [Reason](https://reasonml.github.io/) code.
 
 <img src=".github/screenshot.png" width="491" height="431">
 
