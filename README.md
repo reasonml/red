@@ -24,7 +24,7 @@ Better UX for OCamlDebug. Works with Ocaml and [Reason](https://reasonml.github.
 
 2. Clone the repo and run RED:
 
-        git clone https://github.com/frantic/red.git
+        git clone https://github.com/reasonml/red.git
         ./red/red.py /path/to/myapp.d.byte
 
 3. Press `?` to see available options
