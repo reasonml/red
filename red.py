@@ -14,6 +14,7 @@ import inspect
 
 
 debugger_log = open('/tmp/red.log', 'w')
+
 def trace(text):
     debugger_log.write(text)
     debugger_log.flush()
@@ -116,7 +117,7 @@ def hl(src, breakpoint_lines):
         text = re.sub(a_ptrn, vt100.bold('\\1'), text)
         text = re.sub(b_ptrn, vt100.bold('\\1'), text)
 
-        symbol = u'\u2022' if has_breakpoint else ' '
+        symbol = '\u2022' if has_breakpoint else ' '
 
         # Can't use red twice, the closing color tag will mess the outputs
         if not is_current:
@@ -170,9 +171,10 @@ def main(args):
         return 1
 
     dbgr = subprocess.Popen(['ocamldebug', '-emacs'] + command_line,
+        encoding='utf-8',
         stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
-    print(debugger_command(dbgr, '')[0].replace('\tOCaml Debugger version ', vt100.red(u'\u2022 RED') + ' OCamlDebug v'))
+    print(debugger_command(dbgr, '')[0].replace('\tOCaml Debugger version ', vt100.red('\u2022 RED') + ' OCamlDebug v'))
     print(vt100.dim('Press ? for help'))
     print(debugger_command(dbgr, 'start')[0])
 
@@ -215,9 +217,9 @@ def repl(dbgr, console, auto_run):
         file_name = loc.get('file')
         listing = hl(execute('list'), breakpoint_lines_for_file(breakpoints, file_name))
         if listing:
-            console.print_text((u'\u2500[ %s ]' % loc.get('file')) + u'\u2500' * 300)
+            console.print_text(('\u2500[ %s ]' % loc.get('file')) + '\u2500' * 300)
             console.print_text(listing)
-            console.print_text(u'\u2500' * 300)
+            console.print_text('\u2500' * 300)
         else:
             module = loc.get('module')
             if module:

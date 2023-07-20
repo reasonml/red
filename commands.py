@@ -79,7 +79,7 @@ class Timetravel(Shortcut):
             <dim>(time travel)</dim> """))
 
         time = prompt(banner)
-        if not len(time):
+        if not time:
             return
 
         now = int(ctx['loc'].get('time') or 0)
@@ -125,7 +125,7 @@ class Print(Command):
 
     def run(self, execute, prompt, ctx):
         var = prompt(vt100.magenta(vt100.dim('(print) ')))
-        if not len(var):
+        if not var:
             return
         output = execute('print ' + var)
         return vt100.magenta(output)
@@ -198,7 +198,7 @@ class Custom(Command):
 
     def run(self, execute, prompt, ctx):
         command = prompt(vt100.dim('(odb) '))
-        if not len(command):
+        if not command:
             return
         output = execute(command)
         return vt100.blue('>> {0}\n'.format(command)) + output
