@@ -72,7 +72,7 @@ class Console:
     def safe_input(self, prompt=None):
         self.lines_printed += 1
         try:
-            return raw_input(prompt)
+            return input(prompt)
         except:
             pass
 
